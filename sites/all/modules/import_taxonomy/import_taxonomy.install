@@ -1,0 +1,15 @@
+<?php 
+function import_taxonomy_install() {
+  $url = file_create_url(file_default_scheme() . '://import');
+  if (!is_dir($url)) {
+    mkdir($url);
+  }
+}
+
+function import_taxonomy_uninstall() {
+  db_delete('variable')
+    ->condition('name', 'taxonomy_import_%', 'LIKE')
+    ->execute();
+  cache_clear_all();
+}
+

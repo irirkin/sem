@@ -1,0 +1,111 @@
+<?php 
+
+/**
+ * 
+ * hook_menu().
+ */
+ 
+ function export_taxonomy_menu() {
+  $items['admin/structure/taxonomy/export_taxonomy'] = array(
+    'title' => 'export terms taxonomy',
+    'page callback'  => 'drupal_get_form',
+    'page arguments' => array('export_taxonomy_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+/** button for start import
+ * 
+ */
+ 
+ function export_taxonomy_form($form, &$form_state) {
+ 
+ //get all vocabulary from drupal
+ $vocs =  taxonomy_get_vocabularies(); 
+ $names_vocs = Array();
+     if (!isset($form_state['step'])) {
+         $form_state['step'] = 1;
+     }
+
+ foreach ($vocs as $iter)
+ {
+ 	 //save names vocabulary
+ 	 $names_vocs[$iter->vid] = $iter->name;  	  	
+ }
+
+//insert and view all exist vocabulary into select list
+  $form['select'] = array(
+    '#type' => 'select',
+    '#options' => $names_vocs,
+    '#id'=>'id_select',
+  );
+
+
+ 
+ //add to form button for start export
+  $form['button'] = array(
+    '#id' => 'btn_export',
+    '#type' => 'submit',
+    '#value' => 'Export',
+  );
+
+     $form['a'] = array(
+         '#href' => '/sites/default/files/12.json',
+         '#type' => 'link',
+         '#title' => 'Export',
+     );
+     return $form;
+}
+
+
+function export_taxonomy_form_submit($form, &$form_state) {
+
+    debug($form_state['complete form']['select']['#options'][$form_state['values']['select']]);
+    $name = $form_state['complete form']['select']['#options'][$form_state['values']['select']];
+    $all_elements = taxonomy_get_tree($form_state['values']['select']);
+    debug($all_elements);
+
+    $parents = array();
+
+    foreach ($all_elements as $item)
+    {
+        if($item->parents[0] == 0) {
+            //$parents[] = $item;
+            $childrens = getChildren($item->tid, $item->vid);
+            $obj = (object)array(
+                'name' => $item->name,
+                'desc' => $item->description,
+                'weight' => $item->weight,
+                'children' => $childrens);
+            $parents[] = $obj;
+        }
+    }
+    $parents = json_encode($parents);
+    //debug($parents);
+    file_save_data($parents, 'public://' .$name. '.json',FILE_EXISTS_REPLACE);
+
+    return $form;
+}
+
+function export_taxonomy_after_build($form) {
+
+}
+
+function getChildren($tid, $vid)
+{
+    $children = [];
+    $children_ = taxonomy_get_children($tid, $vid);
+    if(count($children_) > 0){
+        foreach ($children_ as $item) {
+            $child = getChildren($item->tid, $item->vid);
+            $obj = (object)array(
+                'name' => $item->name,
+                'desc' => $item->description,
+                'weight' => $item->weight,
+                'children' => $child);
+            $children[] = $obj;
+        }
+    }
+    return $children;
+}

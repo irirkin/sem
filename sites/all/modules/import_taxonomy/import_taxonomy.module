@@ -1,0 +1,97 @@
+<?php 
+
+/**
+ * 
+ * hook_menu().
+ */
+ 
+ function import_taxonomy_menu() {
+  $items['admin/structure/taxonomy/import_taxonomy'] = array(
+    'title' => 'import terms taxonomy',
+    'page callback'  => 'drupal_get_form',
+    'page arguments' => array('import_taxonomy_form'),
+    'access arguments' => array('administer site configuration'),
+  );
+  return $items;
+}
+
+/** button for start import
+ *
+ */
+ 
+ function import_taxonomy_form($form, &$form_state) {
+ 
+
+ //add to form button for start import
+ /* $form['button'] = array(
+    '#id' => 'btn_import',
+    '#type' => 'submit',
+    '#value' => 'Import',
+  );*/
+
+//add to form upload interface
+     $form['file'] = array(
+         '#type' => 'managed_file',
+         '#title' => 'Import',
+         '#description' => 'Выберите файл с расширением json',
+         '#upload_location' => 'public://',
+         '#upload_validators' => array(
+             'file_validate_extensions' => array('json'),
+         ),
+         '#default_value' => variable_get('import_taxonomy'),
+     );
+
+     //add to form button for load file json
+     $form['submit'] = array(
+         '#type' => 'submit',
+         '#value' => 'Импортировать таксономию',
+     );
+     return $form;
+}
+
+
+function import_taxonomy_form_submit($form, &$form_state) {
+
+// Delete old file
+    $old_file_fid = variable_get('export_import_taxonomy');
+    if ($old_file_fid && $old_file_fid != $form_state['values']['file']) {
+        $old_file = file_load($old_file_fid);
+        file_usage_delete($old_file, 'export_import_taxonomy');
+        file_delete($old_file);
+    }
+
+    $file = file_load($form_state['values']['file']);
+    $fileValues = json_decode(file($file->uri)[0]);
+    $fileName = $file->filename;
+    $machineName = substr($fileName, 0, -5);
+    file_delete($file);
+    $new_vocab = (object) array(
+        'name' => $fileName,
+        'machine_name' => $machineName
+    );
+    taxonomy_vocabulary_save($new_vocab);
+    if(count($fileValues) > 0){
+        foreach ($fileValues as $child){
+            createNode($child, $new_vocab->vid, 0);
+        }
+    }
+
+}
+
+function createNode($item, $vid, $parent){
+    $termObj = (object) array(
+        'name' => $item->name,
+        'vid' => (int)$vid,
+        'description' => $item->desc,
+        'weight' => (int)$item->weight,
+        'parent' => $parent ? (int)$parent : 0
+    );
+
+    $term = taxonomy_term_save($termObj);
+    if(count($item->children) > 0){
+        foreach ($item->children as $child){
+            createNode($child, $vid, $termObj->tid);
+        }
+    }
+}
+

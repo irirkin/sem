@@ -1,0 +1,5 @@
+name = import_taxonomy
+description = import taxonomy
+dependencies[] = taxonomy
+core = 7.x
+configure = admin/structure/taxonomy/import_taxonomy

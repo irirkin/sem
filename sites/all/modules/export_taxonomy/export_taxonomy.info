@@ -1,0 +1,5 @@
+name = export_taxonomy
+description = Export taxonomy
+dependencies[] = taxonomy
+core = 7.x
+configure = admin/structure/taxonomy/export_taxonomy
