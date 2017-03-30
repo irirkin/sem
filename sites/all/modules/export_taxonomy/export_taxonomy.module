@@ -16,7 +16,7 @@
 }
 
 /** button for start import
- * 
+ *
  */
  
  function export_taxonomy_form($form, &$form_state) {
@@ -24,9 +24,7 @@
  //get all vocabulary from drupal
  $vocs =  taxonomy_get_vocabularies(); 
  $names_vocs = Array();
-     if (!isset($form_state['step'])) {
-         $form_state['step'] = 1;
-     }
+
 
  foreach ($vocs as $iter)
  {
@@ -42,7 +40,7 @@
   );
 
 
- 
+
  //add to form button for start export
   $form['button'] = array(
     '#id' => 'btn_export',
@@ -50,21 +48,26 @@
     '#value' => 'Export',
   );
 
-     $form['a'] = array(
-         '#href' => '/sites/default/files/12.json',
-         '#type' => 'link',
-         '#title' => 'Export',
-     );
+     if (isset($form_state['hrefToFile'])&& $form_state['hrefToFile']!='') {
+         $form['a'] = array(
+             '#id' => 'hrefToFile',
+             '#href' => $form_state['hrefToFile'],
+             '#type' => 'link',
+             '#download' => '',
+             '#title' => 'Скачать',
+         );
+     }
+
      return $form;
 }
 
 
 function export_taxonomy_form_submit($form, &$form_state) {
 
-    debug($form_state['complete form']['select']['#options'][$form_state['values']['select']]);
+    //debug($form_state['complete form']['select']['#options'][$form_state['values']['select']]);
     $name = $form_state['complete form']['select']['#options'][$form_state['values']['select']];
     $all_elements = taxonomy_get_tree($form_state['values']['select']);
-    debug($all_elements);
+    //debug($all_elements);
 
     $parents = array();
 
@@ -75,22 +78,22 @@ function export_taxonomy_form_submit($form, &$form_state) {
             $childrens = getChildren($item->tid, $item->vid);
             $obj = (object)array(
                 'name' => $item->name,
-                'desc' => $item->description,
+                'desc' => trim(strip_tags($item->description)),
                 'weight' => $item->weight,
                 'children' => $childrens);
             $parents[] = $obj;
         }
     }
-    $parents = json_encode($parents);
+    $parents = json_encode($parents, JSON_PRETTY_PRINT);
     //debug($parents);
-    file_save_data($parents, 'public://' .$name. '.json',FILE_EXISTS_REPLACE);
+    $file = file_save_data($parents, 'public://' .$name. '.json',FILE_EXISTS_REPLACE);
+    $form_state['rebuild'] = TRUE;
+    $form_state['hrefToFile']= file_create_url($file->uri);
 
     return $form;
 }
 
-function export_taxonomy_after_build($form) {
 
-}
 
 function getChildren($tid, $vid)
 {
@@ -101,7 +104,7 @@ function getChildren($tid, $vid)
             $child = getChildren($item->tid, $item->vid);
             $obj = (object)array(
                 'name' => $item->name,
-                'desc' => $item->description,
+                'desc' => trim(strip_tags($item->description)),
                 'weight' => $item->weight,
                 'children' => $child);
             $children[] = $obj;
