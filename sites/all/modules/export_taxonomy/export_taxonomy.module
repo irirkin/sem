@@ -78,15 +78,15 @@ function export_taxonomy_form_submit($form, &$form_state) {
             $childrens = getChildren($item->tid, $item->vid);
             $obj = (object)array(
                 'name' => $item->name,
-                'desc' => trim(strip_tags($item->description)),
+                'description' => trim(strip_tags($item->description)),
                 'weight' => $item->weight,
                 'children' => $childrens);
             $parents[] = $obj;
         }
     }
-    $parents = json_encode($parents, JSON_PRETTY_PRINT);
+    $parents = json_encode($parents, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
     //debug($parents);
-    $file = file_save_data($parents, 'public://' .$name. '.json',FILE_EXISTS_REPLACE);
+    $file = file_save_data($parents, 'public://' .$name. '.json',FILE_EXISTS_REPLACE );
     $form_state['rebuild'] = TRUE;
     $form_state['hrefToFile']= file_create_url($file->uri);
 
@@ -104,7 +104,7 @@ function getChildren($tid, $vid)
             $child = getChildren($item->tid, $item->vid);
             $obj = (object)array(
                 'name' => $item->name,
-                'desc' => trim(strip_tags($item->description)),
+                'description' => trim(strip_tags($item->description)),
                 'weight' => $item->weight,
                 'children' => $child);
             $children[] = $obj;
